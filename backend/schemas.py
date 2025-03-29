@@ -27,3 +27,8 @@ class UserList(BaseModel):
 
 class Message(BaseModel):
     message: str
+
+
+class LoginSchema(BaseModel):
+    email: str
+    senha: str

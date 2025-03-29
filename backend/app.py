@@ -2,13 +2,12 @@ from http import HTTPStatus
 
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from backend.database import get_session
 from backend.models import User
-from backend.schemas import Message, UserList, UserPublic, UserSchema
-from backend.security import get_password_hash
+from backend.schemas import LoginSchema, Message, UserList, UserPublic, UserSchema
+from backend.security import get_password_hash, verify_password
 
 app = FastAPI()
 
@@ -42,16 +41,19 @@ def create_user(user: UserSchema, session: Session = Depends(get_session)):
 
     return db_user
 
+
 @app.get('/users/', response_model=UserList)
 def read_users(skip: int = 0, limit: int = 100, session: Session = Depends(get_session)):
     users = session.scalars(select(User).offset(skip).limit(limit)).all()
     return {'users': users}
 
+
 @app.get('/user/{user_id}', response_model=UserPublic)
 def read_user(user_id: int, session: Session = Depends(get_session)):
     user = session.scalars(select(User).where(User.id == user_id)).first()
-    return  user
-    
+    return user
+
+
 @app.delete('/users/{user_id}', response_model=Message)
 def delete_user(user_id: int, session: Session = Depends(get_session)):
     db_user = session.scalar(select(User).where(User.id == user_id))
@@ -63,3 +65,15 @@ def delete_user(user_id: int, session: Session = Depends(get_session)):
     session.commit()
 
     return {'message': 'User deleted'}
+
+
+@app.post('/login/', response_model=UserPublic)
+def login(user: LoginSchema, session: Session = Depends(get_session)):
+    db_user = session.scalar(select(User).where((User.email == user.email)))
+
+    if not db_user or not verify_password(user.senha, db_user.senha):
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail='Invalid email or password'
+        )
+
+    return db_user
