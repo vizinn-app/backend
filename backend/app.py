@@ -6,7 +6,6 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from twilio.rest import Client
-from backend.settings import Settings
 
 from backend.database import get_session
 from backend.models import User, UserVerification
@@ -19,6 +18,7 @@ from backend.schemas import (
     verifyCodeSchema,
 )
 from backend.security import create_access_token, get_password_hash, verify_password
+from backend.settings import Settings
 
 app = FastAPI()
 
@@ -31,18 +31,10 @@ client = Client(Settings().account_sid, Settings().auth_token)
 
 @app.post('/users/', status_code=HTTPStatus.CREATED, response_model=UserPublic)
 def create_user(user: UserSchema, session: Session = Depends(get_session)):
-    db_user = session.scalar(
-        select(User).where(
-            (User.full_name == user.full_name) | (User.email == user.email)
-        )
-    )
+    db_user = session.scalar(select(User).where(User.email == user.email))
 
     if db_user:
-        if db_user.full_name == user.full_name:
-            raise HTTPException(
-                status_code=HTTPStatus.CONFLICT, detail='Username already registered'
-            )
-        elif db_user.email == user.email:
+        if db_user.email == user.email:
             raise HTTPException(
                 status_code=HTTPStatus.CONFLICT, detail='Email already registered'
             )
@@ -57,6 +49,35 @@ def create_user(user: UserSchema, session: Session = Depends(get_session)):
     session.add(db_user)
     session.commit()
     session.refresh(db_user)
+
+    verification_code = f'{random.randint(100000, 999999)}'
+
+    user_verification = session.scalar(
+        select(UserVerification).where(UserVerification.user_id == db_user.id)
+    )
+
+    if user_verification:
+        user_verification.verification_code = verification_code
+        user_verification.is_verified = False
+    else:
+        user_verification = UserVerification(
+            user_id=db_user.id, verification_code=verification_code, is_verified=False
+        )
+        session.add(user_verification)
+
+    session.commit()
+
+    try:
+        client.messages.create(
+            body=f'Your verification code is: {verification_code}',
+            from_=Settings().twilio_phone_number,
+            to=f'+55{user.phone}',
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=f'Failed to send SMS: {str(e)}',
+        )
 
     return db_user
 
@@ -104,35 +125,6 @@ def login_for_access_token(
         )
 
     access_token = create_access_token(data={'sub': user.email})
-
-    verification_code = f'{random.randint(100000, 999999)}'
-
-    user_verification = session.scalar(
-        select(UserVerification).where(UserVerification.user_id == user.id)
-    )
-
-    if user_verification:
-        user_verification.verification_code = verification_code
-        user_verification.is_verified = False
-    else:
-        user_verification = UserVerification(
-            user_id=user.id, verification_code=verification_code, is_verified=False
-        )
-        session.add(user_verification)
-
-    session.commit()
-
-    try:
-        client.messages.create(
-            body=f'Your verification code is: {verification_code}',
-            from_=Settings().twilio_phone_number,
-            to=f'+55{user.phone}',
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=f'Failed to send SMS: {str(e)}',
-        )
 
     return {'access_token': access_token, 'token_type': 'bearer'}
 

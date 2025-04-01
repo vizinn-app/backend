@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-from backend.settings import Settings
 
 from jwt import encode
 from pwdlib import PasswordHash
+
+from backend.settings import Settings
 
 ALGORITHM = 'HS256'
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 hours

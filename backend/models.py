@@ -11,7 +11,7 @@ class User:
     __tablename__ = 'users'
 
     id: Mapped[int] = mapped_column(init=False, primary_key=True)
-    full_name: Mapped[str] = mapped_column(unique=True)
+    full_name: Mapped[str] = mapped_column(unique=False)
     cpf: Mapped[str]
     phone: Mapped[str]
     password: Mapped[str]
