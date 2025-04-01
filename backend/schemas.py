@@ -2,18 +2,18 @@ from pydantic import BaseModel, EmailStr
 
 
 class UserSchema(BaseModel):
-    nome: str
+    full_name: str
     cpf: str
-    telefone: str
-    senha: str
+    phone: str
+    password: str
     email: EmailStr
 
 
 class UserPublic(BaseModel):
     id: int
-    nome: str
+    full_name: str
     cpf: str
-    telefone: str
+    phone: str
     email: EmailStr
 
 
@@ -31,4 +31,9 @@ class Message(BaseModel):
 
 class LoginSchema(BaseModel):
     email: str
-    senha: str
+    password: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str

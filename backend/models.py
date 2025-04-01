@@ -11,12 +11,12 @@ class User:
     __tablename__ = 'users'
 
     id: Mapped[int] = mapped_column(init=False, primary_key=True)
-    nome: Mapped[str] = mapped_column(unique=True)
+    full_name: Mapped[str] = mapped_column(unique=True)
     cpf: Mapped[str]
-    telefone: Mapped[str]
-    senha: Mapped[str]
+    phone: Mapped[str]
+    password: Mapped[str]
     email: Mapped[str] = mapped_column(unique=True)
-    nivel_acesso: Mapped[str] = mapped_column(default='comum')
+    permission_level: Mapped[str] = mapped_column(default='comum')
     created_at: Mapped[datetime] = mapped_column(init=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         init=False, server_default=func.now(), onupdate=func.now()

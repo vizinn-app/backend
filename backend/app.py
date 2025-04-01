@@ -1,13 +1,14 @@
 from http import HTTPStatus
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.database import get_session
 from backend.models import User
-from backend.schemas import LoginSchema, Message, UserList, UserPublic, UserSchema
-from backend.security import get_password_hash, verify_password
+from backend.schemas import LoginSchema, Message, Token, UserList, UserPublic, UserSchema
+from backend.security import create_access_token, get_password_hash, verify_password
 
 app = FastAPI()
 
@@ -15,11 +16,13 @@ app = FastAPI()
 @app.post('/users/', status_code=HTTPStatus.CREATED, response_model=UserPublic)
 def create_user(user: UserSchema, session: Session = Depends(get_session)):
     db_user = session.scalar(
-        select(User).where((User.nome == user.nome) | (User.email == user.email))
+        select(User).where(
+            (User.full_name == user.full_name) | (User.email == user.email)
+        )
     )
 
     if db_user:
-        if db_user.nome == user.nome:
+        if db_user.full_name == user.full_name:
             raise HTTPException(
                 status_code=HTTPStatus.CONFLICT, detail='Username already registered'
             )
@@ -29,10 +32,10 @@ def create_user(user: UserSchema, session: Session = Depends(get_session)):
             )
 
     db_user = User(
-        nome=user.nome,
+        full_name=user.full_name,
         cpf=user.cpf,
-        telefone=user.telefone,
-        senha=get_password_hash(user.senha),
+        phone=user.phone,
+        password=get_password_hash(user.password),
         email=user.email,
     )
     session.add(db_user)
@@ -67,13 +70,26 @@ def delete_user(user_id: int, session: Session = Depends(get_session)):
     return {'message': 'User deleted'}
 
 
-@app.post('/login/', response_model=UserPublic)
-def login(user: LoginSchema, session: Session = Depends(get_session)):
-    db_user = session.scalar(select(User).where((User.email == user.email)))
+@app.post('/token/', response_model=Token)
+def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(), 
+    session: Session = Depends(get_session),
+):
+    print(form_data.username, form_data.password)
+    user = session.scalar(select(User).where(User.email == form_data.username)) 
 
-    if not db_user or not verify_password(user.senha, db_user.senha):
+    if not user:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail='Invalid email or password'
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail='Incorrect email or password'
         )
 
-    return db_user
+    if not verify_password(form_data.password, user.password):
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail='Incorrect email or password'
+        )
+
+    access_token = create_access_token(data={'sub': user.email})
+
+    return {'access_token': access_token, 'token_type': 'bearer'}
