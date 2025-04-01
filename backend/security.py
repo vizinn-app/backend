@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+from backend.settings import Settings
 
 from jwt import encode
 from pwdlib import PasswordHash
 
-SECRET_KEY = 'your-secret-key'
 ALGORITHM = 'HS256'
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 hours
 pwd_context = PasswordHash.recommended()
@@ -24,5 +24,5 @@ def create_access_token(data: dict):
         minutes=ACCESS_TOKEN_EXPIRE_MINUTES
     )
     to_encode.update({'exp': expire})
-    encoded_jwt = encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = encode(to_encode, Settings().SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
