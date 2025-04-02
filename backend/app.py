@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from backend.database import get_session
 from backend.models import User, UserVerification
 from backend.schemas import (
+    LoginSchema,
     Message,
     Token,
     UserList,
@@ -40,7 +41,6 @@ def create_user(user: UserSchema, session: Session = Depends(get_session)):
         full_name=user.full_name,
         cpf=user.cpf,
         phone=user.phone,
-        password=get_password_hash(user.password),
         email=user.email,
     )
     session.add(db_user)
@@ -95,43 +95,31 @@ def delete_user(
     return {'message': 'User deleted'}
 
 
-@app.post('/token/', response_model=Token)
-def login_for_access_token(
-    form_data: OAuth2PasswordRequestForm = Depends(),
+@app.post('/token/', response_model=Message)
+def login_request(
+    form_data: LoginSchema,
     session: Session = Depends(get_session),
 ):
-    user = session.scalar(select(User).where(User.email == form_data.username))
+    user = session.scalar(select(User).where(User.email == form_data.email))
 
     if not user:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED, detail='Incorrect email or password'
         )
+    
+    send_sms(user, session)
 
-    if not verify_password(form_data.password, user.password):
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED, detail='Incorrect email or password'
-        )
+    return {'message': 'Verification code sent'}
 
+
+
+
+@app.post('/verify-code/', response_model=Token)
+def verify_code(data: verifyCodeSchema, session: Session = Depends(get_session)):
     user_verification = session.scalar(
         select(UserVerification).where(
-            UserVerification.user_id == user.id,
+            UserVerification.verification_code == data.verification_code
         )
-    )
-
-    if not user_verification or not user_verification.is_verified:
-        send_sms(user, session)
-
-    access_token = create_access_token(data={'sub': user.email})
-
-    return {'access_token': access_token, 'token_type': 'bearer'}
-
-
-@app.post('/verify-code/{user_id}', response_model=Message)
-def verify_code(
-    user_id: int, data: verifyCodeSchema, session: Session = Depends(get_session)
-):
-    user_verification = session.scalar(
-        select(UserVerification).where(UserVerification.user_id == user_id)
     )
 
     if not user_verification:
@@ -147,18 +135,19 @@ def verify_code(
     user_verification.is_verified = True
     session.commit()
 
-    return {'message': 'Code verified successfully'}
+    user_data = session.scalar(select(User).where(User.id == user_verification.user_id))
 
-@app.get('/resend-code/{user_id}', response_model=Message)
-def resend_code(
-    user_id: int, session: Session = Depends(get_session)
-):
-    user = session.scalar(select(User).where(User.id == user_id))
+    access_token = create_access_token(data={'sub': user_data.email})
+
+    return {'access_token': access_token, 'token_type': 'bearer'}
+
+
+@app.post('/resend-code/', response_model=Message)
+def resend_code(data: LoginSchema, session: Session = Depends(get_session)):
+    user = session.scalar(select(User).where(User.email == data.email))
 
     if not user:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail='User not found'
-        )
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='User not found')
 
     user_verification = session.scalar(
         select(UserVerification).where(UserVerification.user_id == user.id)
@@ -168,7 +157,7 @@ def resend_code(
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail='User already verified'
         )
-    
+
     send_sms(user, session)
 
     return {'message': 'Code resent successfully'}

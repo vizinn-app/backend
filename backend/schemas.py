@@ -5,7 +5,6 @@ class UserSchema(BaseModel):
     full_name: str
     cpf: str
     phone: str
-    password: str
     email: EmailStr
 
 
@@ -31,7 +30,6 @@ class Message(BaseModel):
 
 class LoginSchema(BaseModel):
     email: str
-    password: str
 
 
 class Token(BaseModel):
