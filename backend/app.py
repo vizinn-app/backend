@@ -1,7 +1,6 @@
 from http import HTTPStatus
 
 from fastapi import Depends, FastAPI, HTTPException
-from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -19,8 +18,6 @@ from backend.schemas import (
 from backend.security import (
     create_access_token,
     get_current_user,
-    get_password_hash,
-    verify_password,
 )
 from helper.utils import send_sms
 
@@ -95,7 +92,7 @@ def delete_user(
     return {'message': 'User deleted'}
 
 
-@app.post('/token/', response_model=Message)
+@app.post('/login/', response_model=Message)
 def login_request(
     form_data: LoginSchema,
     session: Session = Depends(get_session),
@@ -106,12 +103,10 @@ def login_request(
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED, detail='Incorrect email or password'
         )
-    
+
     send_sms(user, session)
 
     return {'message': 'Verification code sent'}
-
-
 
 
 @app.post('/verify-code/', response_model=Token)
