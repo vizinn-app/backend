@@ -148,3 +148,27 @@ def verify_code(
     session.commit()
 
     return {'message': 'Code verified successfully'}
+
+@app.get('/resend-code/{user_id}', response_model=Message)
+def resend_code(
+    user_id: int, session: Session = Depends(get_session)
+):
+    user = session.scalar(select(User).where(User.id == user_id))
+
+    if not user:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail='User not found'
+        )
+
+    user_verification = session.scalar(
+        select(UserVerification).where(UserVerification.user_id == user.id)
+    )
+
+    if user_verification and user_verification.is_verified:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail='User already verified'
+        )
+    
+    send_sms(user, session)
+
+    return {'message': 'Code resent successfully'}
