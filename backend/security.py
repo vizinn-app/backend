@@ -4,11 +4,10 @@ from zoneinfo import ZoneInfo
 
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy import select
-from sqlalchemy.orm import Session
-
 from jwt import DecodeError, decode, encode
 from pwdlib import PasswordHash
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from backend.database import get_session
 from backend.models import User
@@ -36,6 +35,7 @@ def create_access_token(data: dict):
     to_encode.update({'exp': expire})
     encoded_jwt = encode(to_encode, Settings().SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
 
 def get_current_user(
     session: Session = Depends(get_session),
