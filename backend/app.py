@@ -24,7 +24,7 @@ from helper.utils import send_sms
 app = FastAPI()
 
 
-@app.post('/users/', status_code=HTTPStatus.CREATED, response_model=UserPublic)
+@app.post('/user/', status_code=HTTPStatus.CREATED, response_model=UserPublic)
 def create_user(user: UserSchema, session: Session = Depends(get_session)):
     db_user = session.scalar(select(User).where(User.email == user.email))
 
@@ -70,7 +70,7 @@ def read_user(
     return user
 
 
-@app.delete('/users/{user_id}', response_model=Message)
+@app.delete('/user/{user_id}', response_model=Message)
 def delete_user(
     user_id: int,
     session: Session = Depends(get_session),
