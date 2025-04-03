@@ -13,9 +13,7 @@ from backend.schemas import (
     Token,
     verifyCodeSchema,
 )
-from backend.security import (
-    create_access_token,
-)
+from backend.security import create_access_token, verify_password
 from helper.utils import send_sms
 
 router = APIRouter(prefix='/auth', tags=['auth'])
@@ -30,9 +28,7 @@ def login_request(
     user = session.scalar(select(User).where(User.email == form_data.email))
 
     if not user:
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED, detail='Incorrect email or password'
-        )
+        raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, detail='Incorrect email')
 
     send_sms(user, session)
 
@@ -41,10 +37,13 @@ def login_request(
 
 @router.post('/verify-code/', response_model=Token)
 def verify_code(data: verifyCodeSchema, session: T_Session):
+    user = session.scalar(select(User).where(User.email == data.email))
+
+    if not user:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='User not found')
+
     user_verification = session.scalar(
-        select(UserVerification).where(
-            UserVerification.verification_code == data.verification_code
-        )
+        select(UserVerification).where(UserVerification.user_id == user.id)
     )
 
     if not user_verification:
@@ -52,7 +51,7 @@ def verify_code(data: verifyCodeSchema, session: T_Session):
             status_code=HTTPStatus.NOT_FOUND, detail='Verification code not found'
         )
 
-    if user_verification.verification_code != data.verification_code:
+    if not verify_password(data.verification_code, user_verification.verification_code):
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail='Invalid verification code'
         )
