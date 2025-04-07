@@ -1,9 +1,7 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 
 from pydantic import BaseModel
-
-from backend.schema.category_schemas import CategoryOut
 
 
 class PhotoBase(BaseModel):
@@ -27,15 +25,32 @@ class AnnouncementBase(BaseModel):
 
 
 class AnnouncementCreate(AnnouncementBase):
-    user_id: int
+    category_id: List[int]
 
 
-class AnnouncementOut(AnnouncementBase):
+class CategoryOut_(BaseModel):
     id: int
-    user_id: int
+    name: str
+
+
+class AnnouncementOut(BaseModel):
+    id: int
+    title: str
+    description: str
+    price: float
+    location: str
     is_sold: bool
     created_at: datetime
     updated_at: datetime
+    categories: List[CategoryOut_] = []
 
-    category: Optional[CategoryOut] = None
-    photos: List[PhotoOut] = []
+
+# class AnnouncementOut(AnnouncementBase):
+#     id: int
+#     user_id: int
+#     is_sold: bool
+#     created_at: datetime
+#     updated_at: datetime
+
+#     category: Optional[CategoryOut] = None
+#     #photos: List[PhotoOut] = []

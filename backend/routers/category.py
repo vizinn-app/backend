@@ -8,12 +8,12 @@ from backend.models import Category, User
 from backend.schema.category_schemas import CategoryBase, CategoryOut
 from backend.security import get_current_user
 
-router = APIRouter(prefix="/category", tags=["category"])
+router = APIRouter(prefix='/category', tags=['category'])
 T_Session = Annotated[Session, Depends(get_session)]
 T_User = Annotated[User, Depends(get_current_user)]
 
 
-@router.post("/", response_model=CategoryOut)
+@router.post('/', response_model=CategoryOut)
 def create_category(
     category: CategoryBase,
     session: T_Session,
@@ -22,7 +22,7 @@ def create_category(
     db_category = session.query(Category).filter(Category.name == category.name).first()
 
     if db_category:
-        raise HTTPException(status_code=400, detail="Category already exists")
+        raise HTTPException(status_code=400, detail='Category already exists')
 
     new_category = Category(**category.dict())
     session.add(new_category)
@@ -32,7 +32,7 @@ def create_category(
     return new_category
 
 
-@router.get("/", response_model=list[CategoryOut])
+@router.get('/', response_model=list[CategoryOut])
 def read_categories(
     session: T_Session, current_user: T_User, skip: int = 0, limit: int = 100
 ):

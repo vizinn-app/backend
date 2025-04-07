@@ -1,9 +1,17 @@
 from datetime import datetime
+from typing import List
 
-from sqlalchemy import Boolean, ForeignKey, String, Text, func
+from sqlalchemy import Boolean, Column, ForeignKey, String, Table, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, registry, relationship
 
 table_registry = registry()
+
+announcement_category = Table(
+    'announcement_category',
+    table_registry.metadata,
+    Column('announcement_id', ForeignKey('announcements.id'), primary_key=True),
+    Column('category_id', ForeignKey('categories.id'), primary_key=True),
+)
 
 
 @table_registry.mapped_as_dataclass
@@ -43,6 +51,10 @@ class Category:
     name: Mapped[str] = mapped_column(String(100), unique=True)
     created_at: Mapped[datetime] = mapped_column(init=False, server_default=func.now())
 
+    announcements: Mapped[List['Announcement']] = relationship(
+        secondary=announcement_category, back_populates='categories', init=False
+    )
+
 
 # Modelo de Anúncio
 @table_registry.mapped_as_dataclass
@@ -56,8 +68,9 @@ class Announcement:
     location: Mapped[str] = mapped_column(String(150))
 
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
-    category_id: Mapped[int] = mapped_column(ForeignKey('categories.id'))
-
+    categories: Mapped[List['Category']] = relationship(
+        secondary=announcement_category, back_populates='announcements'
+    )
     is_sold: Mapped[bool] = mapped_column(Boolean, default=False)
 
     created_at: Mapped[datetime] = mapped_column(init=False, server_default=func.now())
@@ -65,9 +78,7 @@ class Announcement:
         init=False, server_default=func.now(), onupdate=func.now()
     )
 
-    # ✅ init=False aqui é o que resolve de verdade
     user: Mapped['User'] = relationship(backref='announcements', init=False)
-    category: Mapped['Category'] = relationship(backref='announcements', init=False)
 
 
 # Modelo de Foto
