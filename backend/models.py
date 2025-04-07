@@ -1,7 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, ForeignKey, String, func
-from sqlalchemy.orm import Mapped, mapped_column, registry
+from sqlalchemy import Boolean, ForeignKey, String, Text, func
+from sqlalchemy.orm import Mapped, mapped_column, registry, relationship
 
 table_registry = registry()
 
@@ -33,3 +33,53 @@ class UserVerification:
     verification_code: Mapped[str] = mapped_column(String(6), unique=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(init=False, server_default=func.now())
+
+
+@table_registry.mapped_as_dataclass
+class Category:
+    __tablename__ = 'categories'
+
+    id: Mapped[int] = mapped_column(init=False, primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True)
+    created_at: Mapped[datetime] = mapped_column(init=False, server_default=func.now())
+
+
+# Modelo de Anúncio
+@table_registry.mapped_as_dataclass
+class Announcement:
+    __tablename__ = 'announcements'
+
+    id: Mapped[int] = mapped_column(init=False, primary_key=True)
+    title: Mapped[str] = mapped_column(String(150))
+    description: Mapped[str] = mapped_column(Text)
+    price: Mapped[float]
+    location: Mapped[str] = mapped_column(String(150))
+
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    category_id: Mapped[int] = mapped_column(ForeignKey('categories.id'))
+
+    is_sold: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    created_at: Mapped[datetime] = mapped_column(init=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        init=False, server_default=func.now(), onupdate=func.now()
+    )
+
+    # ✅ init=False aqui é o que resolve de verdade
+    user: Mapped['User'] = relationship(backref='announcements', init=False)
+    category: Mapped['Category'] = relationship(backref='announcements', init=False)
+
+
+# Modelo de Foto
+@table_registry.mapped_as_dataclass
+class Photo:
+    __tablename__ = 'photos'
+
+    id: Mapped[int] = mapped_column(init=False, primary_key=True)
+    announcement_id: Mapped[int] = mapped_column(ForeignKey('announcements.id'))
+    public_id: Mapped[str] = mapped_column(String(255))
+    secure_url: Mapped[str] = mapped_column(String(255))
+
+    created_at: Mapped[datetime] = mapped_column(init=False, server_default=func.now())
+
+    announcements: Mapped['Announcement'] = relationship(backref='photos')

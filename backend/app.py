@@ -1,11 +1,12 @@
 from fastapi import FastAPI
 
-from backend.routers import auth, users
+from backend.routers import auth, category, users
 
 app = FastAPI()
 
 app.include_router(users.router)
 app.include_router(auth.router)
+app.include_router(category.router)
 
 
 @app.get('/')

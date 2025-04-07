@@ -5,7 +5,6 @@ from sqlalchemy import pool
 
 from backend.models import table_registry
 from alembic import context
-
 from backend.settings import Settings
 
 # this is the Alembic Config object, which provides

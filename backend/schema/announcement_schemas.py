@@ -1,0 +1,41 @@
+from datetime import datetime
+from typing import List, Optional
+
+from pydantic import BaseModel
+
+from backend.schema.category_schemas import CategoryOut
+
+
+class PhotoBase(BaseModel):
+    public_id: str
+    secure_url: str
+    announcement_id: int
+
+
+class PhotoOut(PhotoBase):
+    id: int
+    announcement_id: int
+    created_at: datetime
+
+
+class AnnouncementBase(BaseModel):
+    title: str
+    description: str
+    price: float
+    location: str
+    category_id: int
+
+
+class AnnouncementCreate(AnnouncementBase):
+    user_id: int
+
+
+class AnnouncementOut(AnnouncementBase):
+    id: int
+    user_id: int
+    is_sold: bool
+    created_at: datetime
+    updated_at: datetime
+
+    category: Optional[CategoryOut] = None
+    photos: List[PhotoOut] = []
