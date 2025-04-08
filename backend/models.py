@@ -35,9 +35,7 @@ class UserVerification:
     __tablename__ = 'user_verifications'
 
     id: Mapped[int] = mapped_column(init=False, primary_key=True)
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey('users.id'), unique=True
-    )  # Chave estrangeira
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), unique=True)
     verification_code: Mapped[str] = mapped_column(String(6), unique=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(init=False, server_default=func.now())
@@ -56,7 +54,6 @@ class Category:
     )
 
 
-# Modelo de Anúncio
 @table_registry.mapped_as_dataclass
 class Announcement:
     __tablename__ = 'announcements'
@@ -81,7 +78,6 @@ class Announcement:
     user: Mapped['User'] = relationship(backref='announcements', init=False)
 
 
-# Modelo de Foto
 @table_registry.mapped_as_dataclass
 class Photo:
     __tablename__ = 'photos'
@@ -93,4 +89,4 @@ class Photo:
 
     created_at: Mapped[datetime] = mapped_column(init=False, server_default=func.now())
 
-    announcements: Mapped['Announcement'] = relationship(backref='photos')
+    announcement: Mapped['Announcement'] = relationship(backref='photos', init=False)

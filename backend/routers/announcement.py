@@ -19,7 +19,6 @@ T_User = Annotated[User, Depends(get_current_user)]
 def create_announcement(
     data: AnnouncementCreate, session: T_Session, current_user: T_User
 ):
-    # Verifica se todas as categorias existem
     categories = session.scalars(
         select(Category).where(Category.id.in_(data.category_id))
     ).all()
@@ -27,7 +26,7 @@ def create_announcement(
     if len(categories) != len(data.category_id):
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
-            detail='Uma ou mais categorias não foram encontradas.',
+            detail='One or more categories were not found.',
         )
 
     announcement = Announcement(
@@ -36,7 +35,7 @@ def create_announcement(
         price=data.price,
         location=data.location,
         user_id=current_user.id,
-        categories=categories, 
+        categories=categories,
     )
 
     session.add(announcement)
@@ -57,7 +56,7 @@ def get_announcement(announcement_id: int, session: T_Session):
     announcement = session.get(Announcement, announcement_id)
     if not announcement:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail='Anúncio não encontrado.'
+            status_code=HTTPStatus.NOT_FOUND, detail='Announcement not found.'
         )
     return announcement
 
@@ -68,10 +67,12 @@ def delete_announcement(announcement_id: int, session: T_Session, current_user: 
 
     if not announcement:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail='Anúncio não encontrado.'
+            status_code=HTTPStatus.NOT_FOUND, detail='Announcement not found.'
         )
     if announcement.user_id != current_user.id:
-        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail='Acesso negado.')
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN, detail='Not enough permissions.'
+        )
 
     session.delete(announcement)
     session.commit()

@@ -10,10 +10,10 @@ class PhotoBase(BaseModel):
     announcement_id: int
 
 
-class PhotoOut(PhotoBase):
+class PhotoOut(BaseModel):
     id: int
-    announcement_id: int
-    created_at: datetime
+    public_id: str
+    secure_url: str
 
 
 class AnnouncementBase(BaseModel):
@@ -43,6 +43,7 @@ class AnnouncementOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     categories: List[CategoryOut_] = []
+    photos: List[PhotoOut] = []
 
 
 # class AnnouncementOut(AnnouncementBase):
